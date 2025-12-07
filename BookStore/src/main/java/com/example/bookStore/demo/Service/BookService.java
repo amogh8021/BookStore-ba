@@ -18,6 +18,7 @@ import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -46,9 +47,10 @@ public class BookService {
         return "Your book is successfully added";
     }
 
-    // Get all books
-    public List<Book> getAllBooks() {
-        return bookRepository.findAll();
+    // Get all books with pagination (for listing in frontend)
+    public Page<Book> getAllBooksPaged(int page, int size) {
+        Pageable pageable = PageRequest.of(page, size, Sort.by("publishedDate").descending());
+        return bookRepository.findAll(pageable);
     }
 
     // Get book by ID
@@ -121,5 +123,22 @@ public class BookService {
 
     }
 
+
+    public List<String> getAllAuthors() {
+        return bookRepository.findAll()
+                .stream()
+                .map(Book::getAuthor)
+                .distinct()  // optional: remove duplicates
+                .collect(Collectors.toList());
+    }
+
+
+    public List<String> getAllCategories(){
+        return bookRepository.findAll()
+                .stream()
+                .map(Book :: getGenre)
+                .distinct()
+                .collect(Collectors.toList());
+    }
 
 }

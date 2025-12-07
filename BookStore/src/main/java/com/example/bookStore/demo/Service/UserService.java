@@ -12,6 +12,10 @@ import com.example.bookStore.demo.Repository.UserRepository;
 import com.example.bookStore.demo.Security.CustomUserDetails;
 import io.jsonwebtoken.Jwt;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.AuthenticationCredentialsNotFoundException;
 import org.springframework.security.authentication.BadCredentialsException;
@@ -21,6 +25,8 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.security.Principal;
+import java.util.List;
 import java.util.UUID;
 
 @Service
@@ -73,8 +79,6 @@ public class UserService {
 
   //logic to login
 
-
-
     public AuthResponse userLogin(AuthRequest request ){
 
         //1.check whether user email exists or not in db and we will check it by using userRepository
@@ -106,6 +110,21 @@ public class UserService {
 
 
 
+    }
+
+
+    // Extract user entity from JWT Principal
+    public User getUserFromPrincipal(Principal principal) {
+        String email = principal.getName(); // JWT filter sets username/email as Principal name
+        return userRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("User not found with email: " + email));
+    }
+
+
+
+    public Page<User> getAllUsers(int page, int size) {
+        Pageable pageable = PageRequest.of(page, size, Sort.by("id").descending());
+        return userRepository.findAll(pageable);
     }
 
 }
