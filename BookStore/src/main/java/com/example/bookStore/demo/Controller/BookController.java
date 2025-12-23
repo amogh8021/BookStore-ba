@@ -15,6 +15,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
+import java.security.Principal;
 import java.time.LocalDate;
 import java.util.List;
 
@@ -38,20 +39,7 @@ public class BookController {
 
     }
 
-    @GetMapping("/test")
-    @PreAuthorize("hasRole('ADMIN')")
 
-    public String Test(){
-        return "test pass";
-    }
-
-
-    @GetMapping("/test1")
-
-
-    public String Test1(){
-        return "test pass1";
-    }
 
 
 
@@ -110,6 +98,15 @@ public class BookController {
         return bookService.getAllBooksPaginated(page, size);
     }
 
+
+    @DeleteMapping("/delete/{bookId}")
+
+  public ResponseEntity<String>  deleteBook(@PathVariable Long bookid){
+
+       bookService.deleteBook(bookid);
+       return ResponseEntity.ok("the book is successfully deleted");
+
+    }
 
 
 

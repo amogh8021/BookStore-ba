@@ -19,4 +19,5 @@ public class ProfileResponse {
     private Role role ;
     private String token;
     private String message;
+    private String verifyOtp;
 }

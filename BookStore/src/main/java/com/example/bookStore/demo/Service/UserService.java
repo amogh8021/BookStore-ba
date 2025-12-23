@@ -1,6 +1,5 @@
 package com.example.bookStore.demo.Service;
 
-
 import com.example.bookStore.demo.Dtos.AuthRequest;
 import com.example.bookStore.demo.Dtos.AuthResponse;
 import com.example.bookStore.demo.Dtos.ProfileRequest;
@@ -10,52 +9,61 @@ import com.example.bookStore.demo.Entity.User;
 import com.example.bookStore.demo.Jwt.JwtService;
 import com.example.bookStore.demo.Repository.UserRepository;
 import com.example.bookStore.demo.Security.CustomUserDetails;
-import io.jsonwebtoken.Jwt;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
-import org.springframework.security.authentication.AuthenticationCredentialsNotFoundException;
 import org.springframework.security.authentication.BadCredentialsException;
-import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.security.Principal;
-import java.util.List;
-import java.util.UUID;
+import java.time.LocalDateTime;
+import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
-
 public class UserService {
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
+    private final EmailService emailService;
 
-    // save the user to database
+    // ================= Create user (with OTP flow) =================
+    public ProfileResponse createUser(ProfileRequest request) {
+        String cleanEmail = request.getEmail().trim().toLowerCase();
 
-    public ProfileResponse  createUser(ProfileRequest request){
+        Optional<User> existingUserOpt = userRepository.findByEmail(cleanEmail);
 
-        if (userRepository.findByEmail(request.getEmail()).isPresent()){
-            System.out.println("email is found in the db ");
-            throw new ResponseStatusException(HttpStatus.CONFLICT,"email already registered, please register with a different email");
+        if (existingUserOpt.isPresent()) {
+            User existingUser = existingUserOpt.get();
+            if (existingUser.isAccountVerified()) {
+                // Already verified user exists
+                throw new ResponseStatusException(HttpStatus.CONFLICT, "Email already registered");
+            } else {
+                // User exists but not verified (created during Send OTP) → update data
+                existingUser.setName(request.getName());
+                existingUser.setPassword(passwordEncoder.encode(request.getPassword()));
+                existingUser.setRole(request.getRole() != null ? request.getRole() : Role.USER);
+                existingUser.setAccountVerified(true); // mark as verified
+                User updatedUser = userRepository.save(existingUser);
+                return convertToProfileResponse(updatedUser);
+            }
         }
 
-        //bt default it will be user role
-
-        Role userRole = request.getRole() !=null ? request.getRole():Role.USER;
-
+        // User doesn't exist → create new
+        Role role = request.getRole() != null ? request.getRole() : Role.USER;
         User newUser = User.builder()
                 .name(request.getName())
-                .email(request.getEmail())
+                .email(cleanEmail)
                 .password(passwordEncoder.encode(request.getPassword()))
-                .role(userRole)
+                .role(role)
+                .isAccountVerified(true) // directly verified since signup
                 .build();
 
         User savedUser = userRepository.save(newUser);
@@ -63,68 +71,190 @@ public class UserService {
     }
 
     private ProfileResponse convertToProfileResponse(User user) {
-
-        UserDetails userDetails = new CustomUserDetails(user); // make sure this is used
-        String jwt = jwtService.generateToken(userDetails);    // this will now work
+        CustomUserDetails userDetails = new CustomUserDetails(user);
+        String jwt = jwtService.generateToken(userDetails);
 
         return ProfileResponse.builder()
                 .email(user.getEmail())
                 .name(user.getName())
                 .role(user.getRole())
-                .message("user is successfully registered")
+                .message("User registered successfully")
                 .token(jwt)
                 .build();
     }
 
 
-  //logic to login
+    // ================= Login =================
+    public AuthResponse userLogin(AuthRequest request) {
+        String cleanEmail = request.getEmail().trim().toLowerCase();
+        User user = userRepository.findByEmail(cleanEmail)
+                .orElseThrow(() -> new UsernameNotFoundException("User not found"));
 
-    public AuthResponse userLogin(AuthRequest request ){
+        if (!passwordEncoder.matches(request.getPassword(), user.getPassword()))
+            throw new BadCredentialsException("Wrong password");
 
-        //1.check whether user email exists or not in db and we will check it by using userRepository
+        CustomUserDetails userDetails = new CustomUserDetails(user);
+        String jwt = jwtService.generateToken(userDetails);
 
-        User user = userRepository.findByEmail(request.getEmail())
-                .orElseThrow(()->new UsernameNotFoundException("user not found for this " + request.getEmail()));
-
-
-
-        if(passwordEncoder.matches(request.getPassword(),user.getPassword())){
-
-            CustomUserDetails userDetails = new CustomUserDetails(user);
-
-            String jwt = jwtService.generateToken(userDetails);
-
-
-            return AuthResponse.builder()
-                    .message("you are successfully logged in ")
-                    .token(jwt)
-                    .role(user.getRole())
-                    .email(request.getEmail())
-                    .name(user.getName())
-                    .build();
-
-
-        }
-
-        throw new BadCredentialsException("wrong password for this email");
-
-
-
+        return AuthResponse.builder()
+                .email(user.getEmail())
+                .name(user.getName())
+                .role(user.getRole())
+                .token(jwt)
+                .message("Login successful")
+                .build();
     }
 
+    // ================= Send OTP =================
+    public String sendOtpOnSignup(String email) {
+        String cleanEmail = email.trim().toLowerCase();
 
-    // Extract user entity from JWT Principal
+        User user = userRepository.findByEmail(cleanEmail).orElse(null);
+
+        // If user exists and already verified
+        if (user != null && user.getVerifyOtp() == null)
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Email already registered and verified");
+
+        // If user doesn't exist, create new user with email only
+        if (user == null) {
+            user = User.builder()
+                    .email(cleanEmail)
+                    .role(Role.USER)
+                    .isAccountVerified(false).build();
+        }
+
+        // Generate 6-digit OTP
+        String otp = String.valueOf(100000 + (int) (Math.random() * 900000));
+        user.setVerifyOtp(otp);
+        user.setExpire_verifyOtp_at(LocalDateTime.now().plusMinutes(10));
+
+        userRepository.save(user);
+
+        emailService.SendOtpOnSignup(cleanEmail, otp);
+
+        return "OTP sent successfully";
+    }
+
+    // ================= Verify OTP =================
+    public String verifySignupOtp(String email, String otp) {
+        String cleanEmail = email.trim().toLowerCase();
+
+        User user = userRepository.findByEmail(cleanEmail)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        if (user.getVerifyOtp() == null)
+            throw new RuntimeException("OTP already verified or not sent");
+
+        if (!user.getVerifyOtp().equals(otp))
+            throw new RuntimeException("Invalid OTP");
+
+        if (LocalDateTime.now().isAfter(user.getExpire_verifyOtp_at()))
+            throw new RuntimeException("OTP expired");
+
+        // Mark user as verified
+        user.setVerifyOtp(null);
+        user.setExpire_verifyOtp_at(null);
+        user.setAccountVerified(true);
+        userRepository.save(user);
+
+        return "OTP verified successfully";
+    }
+
+    // ================= Other Utilities =================
     public User getUserFromPrincipal(Principal principal) {
-        String email = principal.getName(); // JWT filter sets username/email as Principal name
+        String email = principal.getName();
         return userRepository.findByEmail(email)
                 .orElseThrow(() -> new RuntimeException("User not found with email: " + email));
     }
-
-
 
     public Page<User> getAllUsers(int page, int size) {
         Pageable pageable = PageRequest.of(page, size, Sort.by("id").descending());
         return userRepository.findAll(pageable);
     }
+
+
+    //logic for forgot password
+
+    public String forgotPassword(String email) {
+
+        // check if user exists
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND,
+                        "Email not registered"
+                ));
+
+        // generate 6-digit OTP
+        String otp = String.valueOf(100000 + (int) (Math.random() * 900000));
+
+        // save OTP in database
+        user.setResetOtp(otp);
+        userRepository.save(user);
+
+        emailService.sendForgotPassword(email, otp);
+
+
+        return "OTP sent to email";
+    }
+
+    public String verifyResetOtp(String email, String otp) {
+
+        String cleanEmail = email.trim().toLowerCase();
+
+        User user = userRepository.findByEmail(cleanEmail)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND, "Email not registered"
+                ));
+
+        if (user.getResetOtp() == null)
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "OTP not requested");
+
+        if (!user.getResetOtp().equals(otp))
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid OTP");
+
+        // SUCCESS → mark OTP as verified
+        user.setResetOtp(null);
+        userRepository.save(user);
+
+        return "OTP verified successfully";
+    }
+
+
+    public String resetPassword(String email, String newPassword) {
+
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND, "User not found for this email"
+                ));
+
+        // Check if OTP is verified (resetOtp must be null)
+        if (user.getResetOtp() != null) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "Please verify OTP before resetting password"
+            );
+        }
+
+        // Update password
+        user.setPassword(passwordEncoder.encode(newPassword));
+        userRepository.save(user);
+
+        return "Password updated successfully";
+    }
+
+
+    //for google , apple login
+    public User findOrCreateOAuthUser(String email, String name, String provider) {
+        return userRepository.findByEmail(email)
+                .orElseGet(() -> {
+                    User newUser = new User();
+                    newUser.setEmail(email);
+                    newUser.setName(name);
+                    newUser.setProvider(provider);
+                    newUser.setRole(Role.USER);  // default role
+                    return userRepository.save(newUser);
+                });
+    }
+
 
 }

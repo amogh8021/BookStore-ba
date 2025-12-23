@@ -24,4 +24,11 @@ public class User {
     @Enumerated(EnumType.STRING)
     private Role role;
 
+    private String resetOtp;
+    private String verifyOtp;
+    private LocalDateTime expire_verifyOtp_at;
+    private LocalDateTime expire_resetOtp_at;
+    private boolean isAccountVerified = false;
+    private  String provider;
+
 }

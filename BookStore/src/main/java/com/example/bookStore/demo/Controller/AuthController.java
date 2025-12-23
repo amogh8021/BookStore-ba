@@ -9,6 +9,7 @@ import com.example.bookStore.demo.Entity.User;
 import com.example.bookStore.demo.Service.UserService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.apache.coyote.Response;
 import org.springframework.context.annotation.Role;
 import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
@@ -23,9 +24,12 @@ import java.util.List;
 @RequiredArgsConstructor
 @RestController
 @RequestMapping("api/v1/auth")
+
+
 public class AuthController {
 
     private final UserService userService;
+
 
 
     @PostMapping("/register")
@@ -36,6 +40,21 @@ public class AuthController {
     }
 
 
+
+
+
+    @PostMapping("/send-otp")
+    public ResponseEntity<String> sendOtp(@RequestParam String email) {
+        String response = userService.sendOtpOnSignup(email);
+        return ResponseEntity.ok(response);
+    }
+
+
+    @PostMapping("/verify-otp")
+    public ResponseEntity<String> verifyOtp(@RequestParam String email, @RequestParam String otp) {
+        String response = userService.verifySignupOtp(email, otp);
+        return ResponseEntity.ok(response);
+    }
 
 
 
@@ -56,7 +75,31 @@ public class AuthController {
         return ResponseEntity.ok(users);
     }
 
+@PostMapping("/forgot-password")
 
+    public ResponseEntity<String> forgotPassword(@RequestParam String email){
+        String response = userService.forgotPassword(email);
+         return ResponseEntity.ok(response);
+}
+
+
+@PostMapping("/verify-reset-otp")
+
+    public ResponseEntity<String>  verifyResetPassword(@RequestParam String email, String otp){
+        String response = userService.verifyResetOtp(email, otp);
+        return ResponseEntity.ok(response);
+}
+
+
+
+    @PostMapping("/reset-password")
+    public ResponseEntity<String> resetPassword(
+            @RequestParam String email,
+            @RequestParam String password
+    ) {
+        String msg = userService.resetPassword(email, password);
+        return ResponseEntity.ok(msg);
+    }
 
 
 
