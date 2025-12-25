@@ -54,13 +54,6 @@ public class BookController {
     }
 
 
-    @GetMapping("/list")
-    public ResponseEntity<Page<Book>> getAllBooks(
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "8") int size
-    ) {
-        return ResponseEntity.ok(bookService.getAllBooksPaged(page, size));
-    }
 
 
     @GetMapping("/info")
@@ -80,12 +73,6 @@ public class BookController {
         return ResponseEntity.ok(updatedBook);
     }
 
-    @GetMapping("/authors")
-    @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<List<String>> getAllAuthors() {
-        List<String> authors = bookService.getAllAuthors();
-        return ResponseEntity.ok(authors);
-    }
 
 
 
@@ -114,11 +101,7 @@ public class BookController {
     }
 
 
-    @GetMapping("/categories")
-    public ResponseEntity<List<String>> getAllCategories() {
-        List<String> categories = bookService.getAllCategories();
-        return ResponseEntity.ok(categories);
-    }
+
 
 
 
