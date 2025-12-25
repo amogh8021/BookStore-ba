@@ -6,7 +6,6 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
-import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
@@ -22,7 +21,6 @@ import java.util.List;
 
 @Configuration
 @EnableWebSecurity
-@EnableMethodSecurity
 @RequiredArgsConstructor
 public class SecurityConfig {
 
@@ -47,7 +45,10 @@ public class SecurityConfig {
                                 "/book/list",
                                 "/book/search",
                                 "/book/info",
-                                "api/wishlist"
+                                "/book/genres",
+                                "/book/authors",
+                                "book/featured",
+                                "book/best-sellers"
                         ).permitAll()
                         // All other requests require authentication
                         .anyRequest().authenticated()

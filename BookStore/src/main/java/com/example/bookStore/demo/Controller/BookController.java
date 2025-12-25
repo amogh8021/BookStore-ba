@@ -124,4 +124,41 @@ public class BookController {
 
 
 
+    @GetMapping("/genres")
+    public ResponseEntity<List<String>> getGenres() {
+        return ResponseEntity.ok(bookService.getAllGenres());
+    }
+
+    @GetMapping("/authors")
+    public ResponseEntity<List<String>> getAuthors() {
+        return ResponseEntity.ok(bookService.getAllAuthor());
+    }
+
+
+    @GetMapping("/featured")
+    public Page<Book> getFeaturedBooks(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size
+    ) {
+        return bookService.getFeaturedBooks(page, size);
+    }
+
+    @PreAuthorize("hasRole('ADMIN')")
+    @PutMapping("/{id}/featured")
+    public Book setFeatured(
+            @PathVariable Long id,
+            @RequestParam boolean featured
+    ) {
+        return bookService.setFeatured(id, featured);
+    }
+
+
+    @GetMapping("/best-sellers")
+    public List<Book> getBestSellers(
+            @RequestParam(defaultValue = "10") int limit
+    ) {
+        return bookService.getBestSellerBooks(limit);
+    }
+
+
 }

@@ -4,6 +4,7 @@ import com.example.bookStore.demo.Dtos.CreateBookRequest;
 import com.example.bookStore.demo.Dtos.UpdateRequestBook;
 import com.example.bookStore.demo.Entity.Book;
 import com.example.bookStore.demo.Repository.BookRepository;
+import com.example.bookStore.demo.Repository.CartItemRepository;
 import com.example.bookStore.demo.Repository.UserRepository;
 
 import lombok.RequiredArgsConstructor;
@@ -18,7 +19,6 @@ import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDate;
 import java.util.List;
-import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -26,6 +26,7 @@ public class BookService {
 
     private final BookRepository bookRepository;
     private final UserRepository userRepository;
+    private final CartItemRepository cartItemRepository;
 
     // Create book (admin only)
     public String createBookRequest(CreateBookRequest request) {
@@ -41,16 +42,16 @@ public class BookService {
                 .publishedDate(request.getPublishedDate())
                 .quantity(request.getQuantity())
                 .imageUrl(request.getImageUrl())
+                .featured(false)
                 .build();
 
         bookRepository.save(book);
         return "Your book is successfully added";
     }
 
-    // Get all books with pagination (for listing in frontend)
-    public Page<Book> getAllBooksPaged(int page, int size) {
-        Pageable pageable = PageRequest.of(page, size, Sort.by("publishedDate").descending());
-        return bookRepository.findAll(pageable);
+    // Get all books
+    public List<Book> getAllBooks() {
+        return bookRepository.findAll();
     }
 
     // Get book by ID
@@ -124,21 +125,50 @@ public class BookService {
     }
 
 
-    public List<String> getAllAuthors() {
-        return bookRepository.findAll()
-                .stream()
-                .map(Book::getAuthor)
-                .distinct()  // optional: remove duplicates
-                .collect(Collectors.toList());
+    //get all genre
+
+    public List<String> getAllGenres(){
+        return bookRepository.getAllGenre();
     }
 
 
-    public List<String> getAllCategories(){
-        return bookRepository.findAll()
-                .stream()
-                .map(Book :: getGenre)
-                .distinct()
-                .collect(Collectors.toList());
+
+    //get all author
+
+    public List<String> getAllAuthor(){
+        return bookRepository.getAllAuthor();
     }
+
+
+    //featured books
+
+    public Page<Book> getFeaturedBooks(int page, int size) {
+        Pageable pageable = PageRequest.of(page, size);
+        return bookRepository.findByFeaturedTrue(pageable);
+    }
+
+
+    public Book setFeatured(Long bookId, boolean featured) {
+        Book book = bookRepository.findById(bookId)
+                .orElseThrow(() -> new RuntimeException("Book not found"));
+
+        book.setFeatured(featured);
+        return bookRepository.save(book);
+    }
+
+    public List<Book> getBestSellerBooks(int limit) {
+
+        Pageable pageable = PageRequest.of(0, limit);
+
+        List<Object[]> result =
+                cartItemRepository.findBestSellingBooks(pageable);
+
+        return result.stream()
+                .map(obj -> (Book) obj[0])
+                .toList();
+    }
+
+
+
 
 }

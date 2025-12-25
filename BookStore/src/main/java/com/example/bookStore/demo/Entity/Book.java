@@ -1,11 +1,7 @@
 package com.example.bookStore.demo.Entity;
 
 
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
+import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -19,7 +15,6 @@ import java.time.LocalDate;
 @NoArgsConstructor
 @Entity
 @Builder
-@JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
 public class Book {
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)
@@ -31,5 +26,7 @@ public class Book {
     private Double price;
     private int quantity;
     private LocalDate publishedDate;
+    @Column(nullable = false)
+    private boolean featured = false;
     private String imageUrl;
 }
