@@ -47,7 +47,8 @@ public class SecurityConfig {
                                 "/book/info",
                                 "/book/genres",
                                 "/book/authors",
-                                "book/featured"
+                                "book/featured",
+                                "book/best-sellers"
                         ).permitAll()
                         // All other requests require authentication
                         .anyRequest().authenticated()

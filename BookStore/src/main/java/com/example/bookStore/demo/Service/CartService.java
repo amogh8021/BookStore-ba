@@ -13,6 +13,8 @@ import com.example.bookStore.demo.Repository.CartItemRepository;
 import com.example.bookStore.demo.Repository.CartRepository;
 import com.example.bookStore.demo.Repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
@@ -255,6 +257,10 @@ public class CartService {
 
         return convertToCartResponse(cart);
     }
+
+
+
+
 
 
 

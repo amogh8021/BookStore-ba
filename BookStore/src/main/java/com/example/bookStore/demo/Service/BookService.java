@@ -4,6 +4,7 @@ import com.example.bookStore.demo.Dtos.CreateBookRequest;
 import com.example.bookStore.demo.Dtos.UpdateRequestBook;
 import com.example.bookStore.demo.Entity.Book;
 import com.example.bookStore.demo.Repository.BookRepository;
+import com.example.bookStore.demo.Repository.CartItemRepository;
 import com.example.bookStore.demo.Repository.UserRepository;
 
 import lombok.RequiredArgsConstructor;
@@ -25,6 +26,7 @@ public class BookService {
 
     private final BookRepository bookRepository;
     private final UserRepository userRepository;
+    private final CartItemRepository cartItemRepository;
 
     // Create book (admin only)
     public String createBookRequest(CreateBookRequest request) {
@@ -40,6 +42,7 @@ public class BookService {
                 .publishedDate(request.getPublishedDate())
                 .quantity(request.getQuantity())
                 .imageUrl(request.getImageUrl())
+                .featured(false)
                 .build();
 
         bookRepository.save(book);
@@ -152,6 +155,20 @@ public class BookService {
         book.setFeatured(featured);
         return bookRepository.save(book);
     }
+
+    public List<Book> getBestSellerBooks(int limit) {
+
+        Pageable pageable = PageRequest.of(0, limit);
+
+        List<Object[]> result =
+                cartItemRepository.findBestSellingBooks(pageable);
+
+        return result.stream()
+                .map(obj -> (Book) obj[0])
+                .toList();
+    }
+
+
 
 
 }

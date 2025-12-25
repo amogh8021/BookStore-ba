@@ -133,4 +133,12 @@ public class BookController {
     }
 
 
+    @GetMapping("/best-sellers")
+    public List<Book> getBestSellers(
+            @RequestParam(defaultValue = "10") int limit
+    ) {
+        return bookService.getBestSellerBooks(limit);
+    }
+
+
 }
