@@ -1,0 +1,55 @@
+[33mcommit feca6dc5dc51c260c4ce8ed8c9f23fedde17c424[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m, [m[1;31morigin/main[m[33m)[m
+Author: amogh8021 <amoghdev8021@gmail.com>
+Date:   Sat Oct 4 22:02:33 2025 +0530
+
+    first commit
+
+.idea/.gitignore
+.idea/Backend.iml
+.idea/aws.xml
+.idea/compiler.xml
+.idea/encodings.xml
+.idea/jarRepositories.xml
+.idea/jpa.xml
+.idea/misc.xml
+.idea/modules.xml
+BookStore/.gitattributes
+BookStore/.gitignore
+BookStore/.mvn/wrapper/maven-wrapper.properties
+BookStore/mvnw
+BookStore/mvnw.cmd
+BookStore/pom.xml
+BookStore/src/main/java/com/example/bookStore/demo/BookStoreApplication.java
+BookStore/src/main/java/com/example/bookStore/demo/Config/SecurityConfig.java
+BookStore/src/main/java/com/example/bookStore/demo/Controller/AuthController.java
+BookStore/src/main/java/com/example/bookStore/demo/Controller/BookController.java
+BookStore/src/main/java/com/example/bookStore/demo/Controller/CartController.java
+BookStore/src/main/java/com/example/bookStore/demo/Dtos/AddToCartRequest.java
+BookStore/src/main/java/com/example/bookStore/demo/Dtos/AuthRequest.java
+BookStore/src/main/java/com/example/bookStore/demo/Dtos/AuthResponse.java
+BookStore/src/main/java/com/example/bookStore/demo/Dtos/CartItemResponse.java
+BookStore/src/main/java/com/example/bookStore/demo/Dtos/CartResponse.java
+BookStore/src/main/java/com/example/bookStore/demo/Dtos/CreateBookRequest.java
+BookStore/src/main/java/com/example/bookStore/demo/Dtos/ProfileRequest.java
+BookStore/src/main/java/com/example/bookStore/demo/Dtos/ProfileResponse.java
+BookStore/src/main/java/com/example/bookStore/demo/Dtos/UpdateRequestBook.java
+BookStore/src/main/java/com/example/bookStore/demo/Entity/Book.java
+BookStore/src/main/java/com/example/bookStore/demo/Entity/Cart.java
+BookStore/src/main/java/com/example/bookStore/demo/Entity/CartItem.java
+BookStore/src/main/java/com/example/bookStore/demo/Entity/Role.java
+BookStore/src/main/java/com/example/bookStore/demo/Entity/User.java
+BookStore/src/main/java/com/example/bookStore/demo/ExceptionHandler/GlobalExceptionHandler.java
+BookStore/src/main/java/com/example/bookStore/demo/Jwt/JwtFilter.java
+BookStore/src/main/java/com/example/bookStore/demo/Jwt/JwtService.java
+BookStore/src/main/java/com/example/bookStore/demo/Repository/BookRepository.java
+BookStore/src/main/java/com/example/bookStore/demo/Repository/CartItemRepository.java
+BookStore/src/main/java/com/example/bookStore/demo/Repository/CartRepository.java
+BookStore/src/main/java/com/example/bookStore/demo/Repository/UserRepository.java
+BookStore/src/main/java/com/example/bookStore/demo/Security/CustomUserDetails.java
+BookStore/src/main/java/com/example/bookStore/demo/Service/AppUserDetailsService.java
+BookStore/src/main/java/com/example/bookStore/demo/Service/BookService.java
+BookStore/src/main/java/com/example/bookStore/demo/Service/BookSpecification.java
+BookStore/src/main/java/com/example/bookStore/demo/Service/CartService.java
+BookStore/src/main/java/com/example/bookStore/demo/Service/UserService.java
+BookStore/src/main/resources/application.properties
+BookStore/src/test/java/com/example/bookStore/demo/BookStoreApplicationTests.java
