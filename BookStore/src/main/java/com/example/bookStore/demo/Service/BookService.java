@@ -122,4 +122,36 @@ public class BookService {
     }
 
 
+    //get all genre
+
+    public List<String> getAllGenres(){
+        return bookRepository.getAllGenre();
+    }
+
+
+
+    //get all author
+
+    public List<String> getAllAuthor(){
+        return bookRepository.getAllAuthor();
+    }
+
+
+    //featured books
+
+    public Page<Book> getFeaturedBooks(int page, int size) {
+        Pageable pageable = PageRequest.of(page, size);
+        return bookRepository.findByFeaturedTrue(pageable);
+    }
+
+
+    public Book setFeatured(Long bookId, boolean featured) {
+        Book book = bookRepository.findById(bookId)
+                .orElseThrow(() -> new RuntimeException("Book not found"));
+
+        book.setFeatured(featured);
+        return bookRepository.save(book);
+    }
+
+
 }

@@ -44,7 +44,10 @@ public class SecurityConfig {
                                 "/api/auth/logout",
                                 "/book/list",
                                 "/book/search",
-                                "/book/info"
+                                "/book/info",
+                                "/book/genres",
+                                "/book/authors",
+                                "book/featured"
                         ).permitAll()
                         // All other requests require authentication
                         .anyRequest().authenticated()
