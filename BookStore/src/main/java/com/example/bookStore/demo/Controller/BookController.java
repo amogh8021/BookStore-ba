@@ -102,7 +102,13 @@ public class BookController {
 
 
 
-
+    @GetMapping("/list")
+    public Page<Book> getAllBooks(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size
+    ) {
+        return bookService.getAllBooksPaginated(page, size);
+    }
 
 
 
@@ -142,6 +148,14 @@ public class BookController {
     ) {
         return bookService.getBestSellerBooks(limit);
     }
+
+    @DeleteMapping("/delete/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<String> deleteBook(@PathVariable Long id) {
+        bookService.deleteBook(id);
+        return ResponseEntity.ok("Book deleted successfully");
+    }
+
 
 
 }

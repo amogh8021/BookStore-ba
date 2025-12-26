@@ -85,6 +85,12 @@ public class BookService {
         bookRepository.deleteById(id);
     }
 
+
+    public Page<Book> getAllBooksPaginated(int page, int size) {
+        Pageable pageable = PageRequest.of(page, size, Sort.by("id").descending());
+        return bookRepository.findAll(pageable);
+    }
+
     // Search books (with Specification + Sorting + Pagination)
     public Page<Book> searchBooksAdvanced(
             String genre,
