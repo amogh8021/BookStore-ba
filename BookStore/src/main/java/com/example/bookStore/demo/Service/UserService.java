@@ -247,4 +247,29 @@ public class UserService {
                     return userRepository.save(newUser);
                 });
     }
+
+    public ProfileResponse getMyProfile(Principal principal) {
+        User user = getUserFromPrincipal(principal);
+
+        return ProfileResponse.builder()
+                .name(user.getName())
+                .email(user.getEmail())
+                .role(user.getRole())
+                .build();
+    }
+
+    public ProfileResponse updateProfile(ProfileRequest request, Principal principal) {
+        User user = getUserFromPrincipal(principal);
+
+        user.setName(request.getName());
+        userRepository.save(user);
+
+        return ProfileResponse.builder()
+                .name(user.getName())
+                .email(user.getEmail())
+                .role(user.getRole())
+                .message("Profile updated successfully")
+                .build();
+    }
+
 }

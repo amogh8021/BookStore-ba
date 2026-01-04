@@ -18,6 +18,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
 
+import java.security.Principal;
 import java.util.List;
 
 
@@ -99,6 +100,21 @@ public class AuthController {
     ) {
         String msg = userService.resetPassword(email, password);
         return ResponseEntity.ok(msg);
+    }
+
+
+
+    @GetMapping("/me")
+    public ResponseEntity<ProfileResponse> getMyProfile(Principal principal) {
+        return ResponseEntity.ok(userService.getMyProfile(principal));
+    }
+
+    @PutMapping("/me")
+    public ResponseEntity<ProfileResponse> updateProfile(
+            @RequestBody @Valid ProfileRequest request,
+            Principal principal
+    ) {
+        return ResponseEntity.ok(userService.updateProfile(request, principal));
     }
 
 
