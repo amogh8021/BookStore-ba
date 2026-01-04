@@ -50,7 +50,8 @@ public class SecurityConfig {
                                 "/book/genres",
                                 "/book/authors",
                                 "/book/featured",
-                                "/book/best-sellers"
+                                "/book/best-sellers",
+                                "/api/v1/auth/verify-otp"
                         ).permitAll()
                         // All other requests require authentication
                         .anyRequest().authenticated()

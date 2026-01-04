@@ -34,7 +34,7 @@ public class UserService {
     private final JwtService jwtService;
     private final EmailService emailService;
 
-    // ================= Create user (with OTP flow) =================
+    // ================= Create user (FINAL SIGNUP) =================
     public ProfileResponse createUser(ProfileRequest request) {
         String cleanEmail = request.getEmail().trim().toLowerCase();
 
@@ -42,28 +42,33 @@ public class UserService {
 
         if (existingUserOpt.isPresent()) {
             User existingUser = existingUserOpt.get();
-            if (existingUser.isAccountVerified()) {
-                // Already verified user exists
-                throw new ResponseStatusException(HttpStatus.CONFLICT, "Email already registered");
-            } else {
-                // User exists but not verified (created during Send OTP) → update data
-                existingUser.setName(request.getName());
-                existingUser.setPassword(passwordEncoder.encode(request.getPassword()));
-                existingUser.setRole(request.getRole() != null ? request.getRole() : Role.USER);
-                existingUser.setAccountVerified(true); // mark as verified
-                User updatedUser = userRepository.save(existingUser);
-                return convertToProfileResponse(updatedUser);
+
+            // 🔥 FIX: if password already exists → user already registered
+            if (existingUser.getPassword() != null) {
+                throw new ResponseStatusException(
+                        HttpStatus.CONFLICT,
+                        "Email already registered"
+                );
             }
+
+            // COMPLETE SIGNUP AFTER OTP VERIFICATION
+            existingUser.setName(request.getName());
+            existingUser.setPassword(passwordEncoder.encode(request.getPassword()));
+            existingUser.setRole(request.getRole() != null ? request.getRole() : Role.USER);
+            existingUser.setAccountVerified(true);
+
+            User updatedUser = userRepository.save(existingUser);
+            return convertToProfileResponse(updatedUser);
         }
 
-        // User doesn't exist → create new
+        // EDGE CASE: direct signup without OTP
         Role role = request.getRole() != null ? request.getRole() : Role.USER;
         User newUser = User.builder()
                 .name(request.getName())
                 .email(cleanEmail)
                 .password(passwordEncoder.encode(request.getPassword()))
                 .role(role)
-                .isAccountVerified(true) // directly verified since signup
+                .isAccountVerified(true)
                 .build();
 
         User savedUser = userRepository.save(newUser);
@@ -82,7 +87,6 @@ public class UserService {
                 .token(jwt)
                 .build();
     }
-
 
     // ================= Login =================
     public AuthResponse userLogin(AuthRequest request) {
@@ -111,25 +115,29 @@ public class UserService {
 
         User user = userRepository.findByEmail(cleanEmail).orElse(null);
 
-        // If user exists and already verified
-        if (user != null && user.getVerifyOtp() == null)
-            throw new ResponseStatusException(HttpStatus.CONFLICT, "Email already registered and verified");
+        // If user exists AND already completed signup
+        if (user != null && user.getPassword() != null) {
+            throw new ResponseStatusException(
+                    HttpStatus.CONFLICT,
+                    "Email already registered"
+            );
+        }
 
-        // If user doesn't exist, create new user with email only
+        // If user does not exist → create email-only user
         if (user == null) {
             user = User.builder()
                     .email(cleanEmail)
                     .role(Role.USER)
-                    .isAccountVerified(false).build();
+                    .isAccountVerified(false)
+                    .build();
         }
 
-        // Generate 6-digit OTP
+        // Generate OTP
         String otp = String.valueOf(100000 + (int) (Math.random() * 900000));
         user.setVerifyOtp(otp);
         user.setExpire_verifyOtp_at(LocalDateTime.now().plusMinutes(10));
 
         userRepository.save(user);
-
         emailService.SendOtpOnSignup(cleanEmail, otp);
 
         return "OTP sent successfully";
@@ -151,16 +159,15 @@ public class UserService {
         if (LocalDateTime.now().isAfter(user.getExpire_verifyOtp_at()))
             throw new RuntimeException("OTP expired");
 
-        // Mark user as verified
+        // 🔥 FIX: DO NOT mark account verified here
         user.setVerifyOtp(null);
         user.setExpire_verifyOtp_at(null);
-        user.setAccountVerified(true);
-        userRepository.save(user);
 
+        userRepository.save(user);
         return "OTP verified successfully";
     }
 
-    // ================= Other Utilities =================
+    // ================= Utilities =================
     public User getUserFromPrincipal(Principal principal) {
         String email = principal.getName();
         return userRepository.findByEmail(email)
@@ -172,33 +179,23 @@ public class UserService {
         return userRepository.findAll(pageable);
     }
 
-
-    //logic for forgot password
-
+    // ================= Forgot Password =================
     public String forgotPassword(String email) {
-
-        // check if user exists
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new ResponseStatusException(
                         HttpStatus.NOT_FOUND,
                         "Email not registered"
                 ));
 
-        // generate 6-digit OTP
         String otp = String.valueOf(100000 + (int) (Math.random() * 900000));
-
-        // save OTP in database
         user.setResetOtp(otp);
         userRepository.save(user);
 
         emailService.sendForgotPassword(email, otp);
-
-
         return "OTP sent to email";
     }
 
     public String verifyResetOtp(String email, String otp) {
-
         String cleanEmail = email.trim().toLowerCase();
 
         User user = userRepository.findByEmail(cleanEmail)
@@ -212,22 +209,18 @@ public class UserService {
         if (!user.getResetOtp().equals(otp))
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid OTP");
 
-        // SUCCESS → mark OTP as verified
         user.setResetOtp(null);
         userRepository.save(user);
 
         return "OTP verified successfully";
     }
 
-
     public String resetPassword(String email, String newPassword) {
-
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new ResponseStatusException(
                         HttpStatus.NOT_FOUND, "User not found for this email"
                 ));
 
-        // Check if OTP is verified (resetOtp must be null)
         if (user.getResetOtp() != null) {
             throw new ResponseStatusException(
                     HttpStatus.BAD_REQUEST,
@@ -235,15 +228,13 @@ public class UserService {
             );
         }
 
-        // Update password
         user.setPassword(passwordEncoder.encode(newPassword));
         userRepository.save(user);
 
         return "Password updated successfully";
     }
 
-
-    //for google , apple login
+    // ================= OAuth =================
     public User findOrCreateOAuthUser(String email, String name, String provider) {
         return userRepository.findByEmail(email)
                 .orElseGet(() -> {
@@ -251,10 +242,9 @@ public class UserService {
                     newUser.setEmail(email);
                     newUser.setName(name);
                     newUser.setProvider(provider);
-                    newUser.setRole(Role.USER);  // default role
+                    newUser.setRole(Role.USER);
+                    newUser.setAccountVerified(true);
                     return userRepository.save(newUser);
                 });
     }
-
-
 }
