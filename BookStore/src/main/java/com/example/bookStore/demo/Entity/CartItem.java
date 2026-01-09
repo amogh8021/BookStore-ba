@@ -27,13 +27,19 @@ public class CartItem {
 
     private int quantity;
 
-    private BigDecimal pricePerUnit;       // Original book price
+    private BigDecimal pricePerUnit;
 
-    private BigDecimal totalPrice;         // pricePerUnit * quantity (before discount)
+    private BigDecimal totalPrice;
 
-    private Double discountPercent;        // discount in %, e.g., 10.0
+    private Double discountPercent;
 
-    private BigDecimal finalPrice;         // price after discount
+    private BigDecimal finalPrice;
+
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "offer_id")
+    private Offers appliedOffer;
+
 
 
     @PrePersist
@@ -43,7 +49,13 @@ public class CartItem {
             this.totalPrice = pricePerUnit.multiply(BigDecimal.valueOf(quantity));
 
             double discount = 0.0;
-            if (discountPercent != null) {
+
+            // 1️⃣ Offer discount has priority if applied
+            if (appliedOffer != null && appliedOffer.isActive()) {
+                discount = appliedOffer.getDiscountPercentage();
+            }
+            // 2️⃣ Otherwise use item-specific discountPercent
+            else if (discountPercent != null) {
                 discount = discountPercent;
             }
 

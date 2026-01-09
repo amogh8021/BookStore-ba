@@ -19,10 +19,7 @@ public class CartController {
     private final CartService cartService;
     private final UserRepository userRepository;
 
-    @GetMapping("/test")
-    public String test() {
-        return "test pass";
-    }
+
 
     // ✅ Add item to cart
     @PostMapping("/add")
