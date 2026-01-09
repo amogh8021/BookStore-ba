@@ -74,4 +74,17 @@ public class CartController {
 
         return ResponseEntity.ok(cartService.clearCart(user.getId()));
     }
+
+
+
+    @PostMapping("/apply-coupon")
+    public ResponseEntity<CartResponse> applyCoupon(@RequestParam String couponCode,
+                                                    Principal principal) {
+        String email = principal.getName();
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("user not found: " + email));
+
+        return ResponseEntity.ok(cartService.applyCoupon(user.getId(), couponCode));
+    }
+
 }

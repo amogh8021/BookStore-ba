@@ -8,6 +8,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -34,4 +35,10 @@ public class Order {
 
     @Enumerated(EnumType.STRING)
     private Status status;
+
+    private BigDecimal subTotal;
+    private BigDecimal discountAmount;
+    private BigDecimal totalPayable;
+
+    private String appliedCoupon;
 }

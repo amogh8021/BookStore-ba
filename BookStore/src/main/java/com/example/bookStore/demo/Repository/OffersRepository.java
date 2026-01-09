@@ -21,6 +21,7 @@ public interface OffersRepository extends JpaRepository<Offers,Long> {
             LocalDate today1,
             LocalDate today2
     );
+    Optional<Offers> findByCouponCode(String couponCode);
 
 
     List<Offers> findByIsFeaturedTrueAndIsActiveTrue();

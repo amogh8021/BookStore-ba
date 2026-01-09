@@ -4,14 +4,8 @@ package com.example.bookStore.demo.Service;
 import com.example.bookStore.demo.Dtos.AddToCartRequest;
 import com.example.bookStore.demo.Dtos.CartItemResponse;
 import com.example.bookStore.demo.Dtos.CartResponse;
-import com.example.bookStore.demo.Entity.Book;
-import com.example.bookStore.demo.Entity.Cart;
-import com.example.bookStore.demo.Entity.CartItem;
-import com.example.bookStore.demo.Entity.User;
-import com.example.bookStore.demo.Repository.BookRepository;
-import com.example.bookStore.demo.Repository.CartItemRepository;
-import com.example.bookStore.demo.Repository.CartRepository;
-import com.example.bookStore.demo.Repository.UserRepository;
+import com.example.bookStore.demo.Entity.*;
+import com.example.bookStore.demo.Repository.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -30,6 +24,7 @@ public class CartService {
     private final UserRepository userRepository;
     private final BookRepository bookRepository;
     private final CartItemRepository cartItemRepository;
+    private final OffersRepository offersRepository;
 
     //logic to add the items in the cart
 
@@ -85,8 +80,14 @@ public class CartService {
                    .cart(cart)
                    .book(book)
                    .quantity(request.getItems())
-                   .totalPrice(BigDecimal.valueOf(book.getPrice() * request.getItems()))
+                   .pricePerUnit(BigDecimal.valueOf(book.getPrice()))
+
+
+
                    .build();
+
+
+           newItem.calculatePrices();
 
            if (cartItems == null) {
                cartItems = new ArrayList<>();
@@ -103,8 +104,9 @@ public class CartService {
                .sum();
 
        BigDecimal totalPrice = cart.getCartItemList().stream()
-               .map(CartItem::getTotalPrice)
+               .map(item -> item.getTotalPrice() != null ? item.getTotalPrice() : BigDecimal.ZERO)
                .reduce(BigDecimal.ZERO, BigDecimal::add);
+       ;
 
 
 
@@ -123,25 +125,28 @@ public class CartService {
                 .cartId(cart.getId())
                 .userId(cart.getUser().getId())
                 .totalPrice(cart.getTotalPrice())
+                .finalPrice(cart.getCartItemList().stream()
+                        .map(item -> item.getFinalPrice() != null ? item.getFinalPrice() : BigDecimal.ZERO)
+                        .reduce(BigDecimal.ZERO, BigDecimal::add))
                 .totalItems(cart.getTotalItems())
-                .items(
-                        cart.getCartItemList() != null
-                                ? cart.getCartItemList().stream()
-                                .map(item -> CartItemResponse.builder()
-                                        .itemId(item.getId())
-                                        .bookId(item.getBook().getId())
-                                        .bookTitle(item.getBook().getTitle())
-                                        .quantity(item.getQuantity())
-                                        .totalPrice(item.getTotalPrice())
-                                        .build()
-                                ).toList()
-                                : new ArrayList<>()
-                )
+                .items(cart.getCartItemList().stream().map(item -> CartItemResponse.builder()
+                        .itemId(item.getId())
+                        .bookId(item.getBook().getId())
+                        .bookTitle(item.getBook().getTitle())
+                        .quantity(item.getQuantity())
+                        .pricePerUnit(item.getPricePerUnit())
+                        .discountPercent(item.getDiscountPercent())
+                        .totalPrice(item.getTotalPrice())
+                        .finalPrice(item.getFinalPrice())
+                        .build()
+                ).toList())
                 .build();
     }
 
 
- //logic to remove the item from the cart
+
+
+    //logic to remove the item from the cart
 
     public CartResponse removeFromCart(Long userId, Long bookId) {
         User user = userRepository.findById(userId)
@@ -259,6 +264,58 @@ public class CartService {
     }
 
 
+
+
+
+    // add this field
+
+
+    // ================= Apply Coupon =================
+    public CartResponse applyCoupon(Long userId, String couponCode) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        Cart cart = cartRepository.findByUser(user)
+                .orElseThrow(() -> new RuntimeException("Cart not found for user"));
+
+        Offers offer = offersRepository.findByCouponCode(couponCode)
+                .orElseThrow(() -> new RuntimeException("Invalid coupon"));
+
+        if (!offer.isActive()) {
+            throw new RuntimeException("Coupon expired or inactive");
+        }
+
+        // Apply the offer to all cart items
+        cart.getCartItemList().forEach(item -> {
+            item.setAppliedOffer(offer);
+            item.calculatePrices(); // recalc finalPrice
+        });
+
+        // Update cart totals
+        updateCartTotals(cart);
+
+        cartRepository.save(cart);
+
+        return convertToCartResponse(cart);
+    }
+
+    // ================= Helper: update totalPrice and totalItems =================
+
+    private void updateCartTotals(Cart cart) {
+        BigDecimal subTotal = BigDecimal.ZERO;
+        int totalItems = 0;
+
+        for (CartItem item : cart.getCartItemList()) {
+            subTotal = subTotal.add(
+                    item.getTotalPrice() != null ? item.getTotalPrice() : BigDecimal.ZERO
+            );
+            totalItems += item.getQuantity();
+        }
+
+        cart.setTotalPrice(subTotal);
+        cart.setTotalItems(totalItems);
+        cart.setUpdatedAt(LocalDateTime.now());
+    }
 
 
 

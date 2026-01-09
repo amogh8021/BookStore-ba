@@ -12,6 +12,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -33,20 +34,54 @@ public class OrderService {
         Cart cart = cartRepository.findByUser(user)
                 .orElseThrow(() -> new RuntimeException("cart not found for user " + email));
 
+        if (cart.getCartItemList().isEmpty()) {
+            throw new RuntimeException("Cannot create order: cart is empty");
+        }
+
+        // Create order items (deep copy from cart items)
         List<CartItem> orderItems = new ArrayList<>();
         for (CartItem cartItem : cart.getCartItemList()) {
             CartItem newItem = CartItem.builder()
                     .book(cartItem.getBook())
                     .quantity(cartItem.getQuantity())
+                    .pricePerUnit(cartItem.getPricePerUnit())
+                    .totalPrice(cartItem.getTotalPrice())
+                    .discountPercent(cartItem.getDiscountPercent())
+                    .finalPrice(cartItem.getFinalPrice())
+                    .appliedOffer(cartItem.getAppliedOffer())
                     .build();
             orderItems.add(newItem);
         }
 
+        // Calculate order totals
+        BigDecimal subTotal = cart.getCartItemList().stream()
+                .map(CartItem::getTotalPrice)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        BigDecimal totalPayable = cart.getCartItemList().stream()
+                .map(CartItem::getFinalPrice)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        BigDecimal discountAmount = subTotal.subtract(totalPayable);
+
+        // Collect applied coupon codes (if any)
+        String appliedCoupon = cart.getCartItemList().stream()
+                .filter(item -> item.getAppliedOffer() != null && item.getAppliedOffer().getCouponCode() != null)
+                .map(item -> item.getAppliedOffer().getCouponCode())
+                .distinct()
+                .reduce((a, b) -> a + ", " + b)
+                .orElse(null);
+
+        // Create order
         Order order = Order.builder()
                 .user(user)
                 .item(orderItems)
                 .orderDate(LocalDateTime.now())
                 .status(Status.PENDING)
+                .subTotal(subTotal)
+                .discountAmount(discountAmount)
+                .totalPayable(totalPayable)
+                .appliedCoupon(appliedCoupon)
                 .build();
 
         Order savedOrder = orderRepository.save(order);
@@ -54,6 +89,8 @@ public class OrderService {
         // Clear cart
         cartItemRepository.deleteAll(cart.getCartItemList());
         cart.getCartItemList().clear();
+        cart.setTotalPrice(BigDecimal.ZERO);
+        cart.setTotalItems(0);
         cartRepository.save(cart);
 
         return savedOrder;

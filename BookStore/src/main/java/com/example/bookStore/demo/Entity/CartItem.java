@@ -1,5 +1,6 @@
 package com.example.bookStore.demo.Entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -11,6 +12,7 @@ import java.math.RoundingMode;
 @NoArgsConstructor
 @Entity
 @Builder
+@JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
 public class CartItem {
 
     @Id
@@ -25,6 +27,13 @@ public class CartItem {
     @JoinColumn(name = "book_id")
     private Book book;
 
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "offer_id")
+    private Offers appliedOffer;
+
+
+
     private int quantity;
 
     private BigDecimal pricePerUnit;
@@ -33,12 +42,12 @@ public class CartItem {
 
     private Double discountPercent;
 
-    private BigDecimal finalPrice;
 
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "offer_id")
-    private Offers appliedOffer;
+   private BigDecimal finalPrice;
+
+
+   ;
 
 
 
