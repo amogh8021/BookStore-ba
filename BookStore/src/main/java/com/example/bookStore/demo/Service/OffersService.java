@@ -22,6 +22,7 @@ public class OffersService {
         }
 
         offer.setActive(true);
+        offer.setFeatured(false);
         return offersRepository.save(offer);
     }
 
@@ -69,4 +70,19 @@ public class OffersService {
 
         return offer;
     }
+
+    public Offers toggleFeatured(Long offerId) {
+        Offers offer = offersRepository.findById(offerId)
+                .orElseThrow(() -> new RuntimeException("Offer not found"));
+
+        offer.setFeatured(!offer.isFeatured()); // ⭐ toggle
+        return offersRepository.save(offer);
+    }
+
+
+    public List<Offers> getFeaturedOffers() {
+        return offersRepository.findByIsFeaturedTrueAndIsActiveTrue();
+    }
+
+
 }

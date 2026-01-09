@@ -31,5 +31,7 @@ public class Offers {
     private LocalDate startDate;
     private LocalDate endDate;
     private boolean isActive;
+    private boolean isFeatured;
 
 }
+

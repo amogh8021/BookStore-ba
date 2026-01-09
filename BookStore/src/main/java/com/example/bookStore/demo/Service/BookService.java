@@ -38,7 +38,7 @@ public class BookService {
                 .genre(request.getGenre())
                 .price(request.getPrice())
                 .title(request.getTitle())
-                .author(request.getAuthor())g
+                .author(request.getAuthor())
                 .description(request.getDescription())
                 .publishedDate(request.getPublishedDate())
                 .quantity(request.getQuantity())

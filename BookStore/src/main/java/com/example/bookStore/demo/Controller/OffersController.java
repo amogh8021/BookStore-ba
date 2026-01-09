@@ -25,7 +25,7 @@ public class OffersController {
     }
 
 
-    @DeleteMapping("/create/{offerId}")
+    @DeleteMapping("/delete/{offerId}")
     public ResponseEntity<String> deleteOffer(@PathVariable Long offerId) {
         offersService.deleteOffer(offerId);
         return ResponseEntity.ok("Offer deleted successfully");
@@ -48,6 +48,15 @@ public class OffersController {
     public ResponseEntity<List<Offers>> getValidActiveOffers() {
         return ResponseEntity.ok(offersService.getAllValidActiveOffers());
     }
+
+
+    @PutMapping("/{offerId}/featured")
+    public ResponseEntity<Offers> toggleFeatured(@PathVariable Long offerId) {
+        Offers updatedOffer = offersService.toggleFeatured(offerId);
+        return ResponseEntity.ok(updatedOffer);
+    }
+
+
 
 
     @GetMapping("/validate")

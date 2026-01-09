@@ -23,5 +23,5 @@ public interface OffersRepository extends JpaRepository<Offers,Long> {
     );
 
 
-
+    List<Offers> findByIsFeaturedTrueAndIsActiveTrue();
 }
